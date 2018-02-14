@@ -91,6 +91,7 @@ class OiPres {
       }
     })
   }
+
   /**
    * Load the contents from a file next to all of this
    * @returns {Promise} Promise resolving to file contents
@@ -104,6 +105,7 @@ class OiPres {
       }
     }).then(res => res.text());
   }
+
   /**
    * Create an upload form and load the file's contents
    * @returns {Promise} Promise resolving to file contents
@@ -127,6 +129,7 @@ class OiPres {
         });
       });
   }
+
   /**
    * Load the necessary data by any means necessary.
    * @returns {Promise} Promise resolving to data
@@ -139,6 +142,7 @@ class OiPres {
       return Promise.resolve(parser.parseFromString(xml, "application/xml"));
     });
   }
+
   /**
    * @returns {Test} reified Test
    */
@@ -149,6 +153,7 @@ class OiPres {
     let timeLimit = test.getElementsByTagName("testtimelimit")[0].textContent;
     let comment = test.getElementsByTagName("testcomment")[0].textContent;
   }
+
   /**
    * @returns {Task} reified Task
    */
@@ -174,6 +179,7 @@ class OiPres {
     }
     return { id: id, name: name, comment: comment, points: parseInt(points), result: parseInt(result), code: { source: code, filename: codeFile }, testGroups: testGroups }
   }
+
   /**
    * @returns {Rpt} reified Rpt
    */
@@ -190,6 +196,7 @@ class OiPres {
     }
     return { user: { id: parseInt(userno), name: user }, ids: reportno.split(" / ").map(parseInt), date: new Date(date), contest: contest, result: parseInt(result), tasks: tasks };
   }
+
   /**
    * Parse the XML into object representation.
    * @returns {Promise} Promise resolving to object representation of the data from XML.
@@ -198,6 +205,7 @@ class OiPres {
     let rpts = doc.getElementsByTagName("rpt");
     return Promise.resolve(Array.from(rpts).map(this.parseReport.bind(this)));
   }
+
   present() {
     return this.loadData().then(this.parseData.bind(this));
   }
