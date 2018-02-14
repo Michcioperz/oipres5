@@ -1,4 +1,6 @@
 x (1) parsing the XML reports export from SIO2
-  (2) building the HTMLs from the parsed reports
+x (2) building the HTMLs from the parsed reports
+  (3) adding comment extraction
   (3) recreating the styling of the original OIpres
       recreating the vaporwave styling suggested on the Elitarny Mimuw fanpage
+      i18n

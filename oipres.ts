@@ -2,31 +2,67 @@
  * Chainable object builder
  */
 class Ayyy {
-  obj: any;
+  obj: Element;
+  
+  
   /**
    * Create a DOM object.
    * @param {string} tagname
    */
-  constructor(tagname) {
+  constructor(tagname: string) {
     this.obj = document.createElement(tagname);
   }
-  attr(key, value) {
+
+  attr(key: string, value: any): Ayyy {
     this.obj.setAttribute(key, value);
     return this;
   }
-  html(content) {
+
+  html(content: string): Ayyy {
     this.obj.innerHTML = content;
     return this;
   }
-  pushFront(o) {
+
+  text(content: string): Ayyy {
+    this.obj.textContent = content;
+    return this;
+  }
+
+  pushFront(o: Ayyy): Ayyy {
+    this.obj.insertBefore(o.obj, this.obj.firstChild);
+    return this;
+  }
+
+  pushFrontE(o: Element): Ayyy {
     this.obj.insertBefore(o, this.obj.firstChild);
     return this;
   }
-  pushBack(o) {
+
+  pushBack(o: Ayyy): Ayyy {
+    this.obj.appendChild(o.obj);
+    return this;
+  }
+
+  pushBackE(o: Element): Ayyy {
     this.obj.appendChild(o);
     return this;
   }
-  react(eventName, func) {
+
+  pushBackAll(l: Ayyy[]): Ayyy {
+    for (let o of l) {
+      this.pushBack(o);
+    }
+    return this;
+  }
+
+  pushBackAllE(l: Element[]): Ayyy {
+    for (let o of l) {
+      this.pushBackE(o);
+    }
+    return this;
+  }
+
+  react(eventName, func): Ayyy {
     this.obj.addEventListener(eventName, func, false);
     return this;
   }
@@ -39,9 +75,10 @@ class Code {
 
 class Test {
   name: string;
+  comment: string;
   result: string;
   time: string;
-  timelimit: string;
+  timeLimit: string;
 }
 
 class TestGroup {
@@ -72,6 +109,15 @@ class Report {
   contest: string;
   result: number;
   tasks: Task[];
+}
+
+const enum TestResult {
+  JDW = 0, // Just Do Whatever
+  AC = 1, // ACcepted
+  WA = 2, // Wrong Answer
+  TLE = 3, // Time Limit Exceeded
+  RE = 5, // Runtime Error
+  SV = 6, // Security Violation
 }
 
 
@@ -148,10 +194,31 @@ class OiPres {
    */
   parseTest(test: Element): Test {
     let name = test.getElementsByTagName("testname")[0].textContent;
-    let result = test.getElementsByTagName("testresult")[0].textContent;
+    let comment = test.getElementsByTagName("testcomment")[0].textContent;
+    let textResult = test.getElementsByTagName("testresult")[0].textContent;
+    switch (parseInt(textResult)) {
+      case TestResult.TLE:
+        textResult = "Przekroczenie limitu czasu";
+        break;
+      case TestResult.AC:
+        textResult = "OK";
+        break;
+      case TestResult.RE:
+        textResult = "Błąd wykonania";
+        break;
+      case TestResult.SV:
+        textResult = "Naruszenie zasad";
+        break;
+      case TestResult.WA:
+        textResult = "Zła odpowiedź"
+        break;
+      case TestResult.JDW:
+      default:
+        textResult = comment;
+    }
     let time = test.getElementsByTagName("testtime")[0].textContent;
     let timeLimit = test.getElementsByTagName("testtimelimit")[0].textContent;
-    let comment = test.getElementsByTagName("testcomment")[0].textContent;
+    return { name: name, result: textResult, time: time, timeLimit: timeLimit, comment: comment };
   }
 
   /**
@@ -168,8 +235,10 @@ class OiPres {
     let testGroups = [];
     let group = { points: "", maxPoints: "", tests: [] };
     for (let test of task.getElementsByTagName("test")) {
-      if (test.getAttribute("newgroup") == 1 && group.tests.length > 0) {
-        testGroups.push(group);
+      if (test.getAttribute("newgroup") == 1) {
+        if (group.tests.length > 0) {
+          testGroups.push(group);
+        }
         group = { points: test.getElementsByTagName("testpoints")[0].textContent, maxPoints: test.getElementsByTagName("testmaxpoints")[0].textContent, tests: [] };
       }
       group.tests.push(this.parseTest(test));
@@ -206,9 +275,54 @@ class OiPres {
     return Promise.resolve(Array.from(rpts).map(this.parseReport.bind(this)));
   }
 
-  present() {
-    return this.loadData().then(this.parseData.bind(this));
+  printTest(test: Test): Ayyy {
+    return new Ayyy("tr").pushBackAll([
+      new Ayyy("td").text(test.name),
+      new Ayyy("td").text(test.result),
+      new Ayyy("td").text(test.time + "/" + test.timeLimit)
+    ]);
+  }
+
+  printTestGroup(group: TestGroup): Ayyy {
+    return new Ayyy("tr").pushBack(
+      new Ayyy("td").pushBack(
+        new Ayyy("table").pushBack(
+          new Ayyy("tr").pushBackAll([
+            new Ayyy("td").pushBack(
+              new Ayyy("table").pushBackAll(group.tests.map(this.printTest.bind(this)))
+            ),
+            new Ayyy("td").text("" + group.points + "/" + group.maxPoints)
+          ])
+        )
+      )
+    );
+  }
+
+  printTask(task: Task): Ayyy[] {
+    // TODO: comment extraction
+    return [
+      new Ayyy("div").pushBack(new Ayyy("h2").text(task.name + "(" + task.id + ")")).pushBackAll(task.testGroups.map(this.printTestGroup.bind(this))).pushBack(new Ayyy("h2").text(task.result + "/" + task.points))
+    ];
+  }
+
+  printReport(report: Report): Ayyy {
+    let header = new Ayyy("h1").text(report.user.name).obj;
+    let section = new Ayyy("section").pushBackAll([].concat.apply([], report.tasks.map(this.printTask.bind(this))));
+    for (let page of section.obj.children) {
+      page.insertBefore(header.cloneNode(true), page.firstChild);
+    }
+    return section;
+  }
+
+  printData(data: Report[]): Promise<Element> {
+    return new Promise((resolve, reject) => {
+      resolve(new Ayyy("main").pushBackAll(data.map(this.printReport.bind(this))).obj);
+    });
+  }
+
+  present(): Promise {
+    return this.loadData().then(this.parseData.bind(this)).then(this.printData.bind(this));
   }
 }
 
-new OiPres().present().catch(console.error).then(console.info);
+new OiPres().present().catch(console.error).then(document.body.appendChild.bind(document.body));
